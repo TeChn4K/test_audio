@@ -1,6 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import "./App.css";
+import player from "./player";
+
+player.init();
 
 const flux1 = "https://novazz.ice.infomaniak.ch/novazz-128.mp3";
 const flux2 = "https://ledjamradio.ice.infomaniak.ch/ledjamradio.mp3";
@@ -26,33 +29,7 @@ function crossfade(callback1, callback2, callbackEnd) {
   }, 20);
 }
 
-// Useful for Webkit users
-window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
-// Main AudioContext
-const context = new AudioContext();
-
-// Gains
-const gain1 = context.createGain();
-const gain2 = context.createGain();
-
-// Audio sources
-const audio1 = new Audio();
-audio1.crossOrigin = "anonymous";
-// audio1.preload = "none";
-const sourceAudio1 = context.createMediaElementSource(audio1);
-
-// 3-2. Second Audio source
-const audio2 = new Audio();
-audio2.crossOrigin = "anonymous";
-// audio2.preload = "none";
-const sourceAudio2 = context.createMediaElementSource(audio2);
-
-// Connecting sources
-sourceAudio1.connect(gain1);
-sourceAudio2.connect(gain2);
-gain1.connect(context.destination);
-gain2.connect(context.destination);
 
 function App() {
   const [playing1, setPlaying1] = useState(false);
@@ -60,34 +37,47 @@ function App() {
 
   const inputRange1Ref = useRef(null);
   const inputRange2Ref = useRef(null);
+  const inputRangeMasterRef = useRef(null);
 
+  // Set programmaticaly
   const changeVolume1 = volume => {
     inputRange1Ref.current.value = volume; // Set input range value
-
-    var fraction = parseInt(volume) / 100;
-    gain1.gain.value = fraction * fraction;
+    player.changeVolume1(volume);
   };
+
   const changeVolume2 = volume => {
     inputRange2Ref.current.value = volume; // Set input range value
+    player.changeVolume2(volume);
+  };
 
-    var fraction = parseInt(volume) / 100;
-    gain2.gain.value = fraction * fraction;
+  const changeVolumeMaster = volume => {
+    inputRangeMasterRef.current.value = volume; // Set input range value
+    player.setVolume(volume);
   };
 
   const volumeRange1Ref = useCallback(node => {
     inputRange1Ref.current = node;
     changeVolume1(100);
   }, []);
+
   const volumeRange2Ref = useCallback(node => {
     inputRange2Ref.current = node;
     changeVolume2(100);
   }, []);
 
+  const volumeRangeMasterRef = useCallback(node => {
+    inputRangeMasterRef.current = node;
+    changeVolumeMaster(100);
+  }, []);
+
   const onRange1ChangedHandler = () => {
-    changeVolume1(inputRange1Ref.current.value);
+    player.changeVolume1(inputRange1Ref.current.value);
   };
   const onRange2ChangedHandler = () => {
-    changeVolume2(inputRange2Ref.current.value);
+    player.changeVolume2(inputRange2Ref.current.value);
+  };
+  const onRangeMasterChangedHandler = () => {
+    player.setVolume(inputRangeMasterRef.current.value);
   };
 
   const togglePlaying1 = () => {
@@ -99,45 +89,32 @@ function App() {
 
   useEffect(() => {
     if (playing1) {
-      const playHandler = () => audio1.play();
-      const errorHandler = e => console.log("Error while loading audio1", e);
-
-      audio1.addEventListener("canplaythrough", playHandler, false);
-      audio1.addEventListener("error", errorHandler);
-
-      audio1.src = flux1;
-      audio1.load(); // Needed on iOS
-
-      return () => {
-        audio1.removeEventListener("canplaythrough", playHandler);
-        audio1.removeEventListener("error", errorHandler);
-      };
+      player.play(flux1).then(() => console.log("Now playing..."));
     } else {
-      audio1.pause();
-      audio1.src = ""; // Stop loading previous stream
+      player.stop();
     }
   }, [playing1]);
 
-  useEffect(() => {
-    if (playing2) {
-      const playHandler = () => audio2.play();
-      const errorHandler = e => console.log("Error while loading audio2", e);
+  // useEffect(() => {
+  //   if (playing2) {
+  //     const playHandler = () => audio2.play();
+  //     const errorHandler = e => console.log("Error while loading audio2", e);
 
-      audio2.addEventListener("canplaythrough", playHandler, false);
-      audio2.addEventListener("error", errorHandler);
+  //     audio2.addEventListener("canplaythrough", playHandler, false);
+  //     audio2.addEventListener("error", errorHandler);
 
-      audio2.src = flux2;
-      audio2.load(); // Needed on iOS
+  //     audio2.src = flux2;
+  //     audio2.load(); // Needed on iOS
 
-      return () => {
-        audio2.removeEventListener("canplaythrough", playHandler);
-        audio2.removeEventListener("error", errorHandler);
-      };
-    } else {
-      audio2.pause();
-      audio2.src = ""; // Stop loading previous stream
-    }
-  }, [playing2]);
+  //     return () => {
+  //       audio2.removeEventListener("canplaythrough", playHandler);
+  //       audio2.removeEventListener("error", errorHandler);
+  //     };
+  //   } else {
+  //     audio2.pause();
+  //     audio2.src = ""; // Stop loading previous stream
+  //   }
+  // }, [playing2]);
 
   const crossfade1to2 = () => {
     changeVolume1(100);
@@ -211,6 +188,12 @@ function App() {
         </fieldset>
       </div>
 
+      <div>
+      <p>
+            <span>Master volume:</span>
+            <input type="range" min="0" max="100" step="1" ref={volumeRangeMasterRef} onChange={onRangeMasterChangedHandler} />
+          </p>
+      </div>
       <div>
         <h2>Actions</h2>
         <p>Manual crossfade:</p>

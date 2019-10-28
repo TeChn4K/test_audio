@@ -26,11 +26,18 @@ function crossfade(callback1, callback2, callbackEnd) {
   }, 20);
 }
 
-// Useful for Webkit users
-window.AudioContext = window.AudioContext || window.webkitAudioContext;
-
-// Main AudioContext
-const context = new AudioContext();
+let context;
+try {
+  window.AudioContext =
+    window.AudioContext ||
+    window.webkitAudioContext ||
+    window.mozAudioContext ||
+    window.oAudioContext ||
+    window.msAudioContext;
+  context = new AudioContext();
+} catch (e) {
+  alert("Web Audio API is not supported in this browser");
+}
 
 // Gains
 const gain1 = context.createGain();
@@ -169,23 +176,24 @@ function App() {
 
   const permanentCrossfade = () => {
     const runner = () => {
-      crossfade1to2()
+      crossfade1to2();
 
       setTimeout(() => {
-        crossfade2to1()
+        crossfade2to1();
 
         setTimeout(() => {
-          runner()
+          runner();
         }, 10000);
-
       }, 10000);
-    }
+    };
     runner();
   };
 
   return (
     <div className="App">
-      <h1> Test audio <small>v.2</small></h1>
+      <h1>
+        Test audio <small style={{fontSize: '0.95rem'}}>v 2.1</small>
+      </h1>
 
       <div style={{ display: "flex" }}>
         <fieldset style={{ flex: 1 }}>
@@ -216,8 +224,13 @@ function App() {
         <p>Manual crossfade:</p>
         <button onClick={crossfade1to2}>Crossfade 1 to 2</button>&nbsp;
         <button onClick={crossfade2to1}>Crossfade 2 to 1</button>
-
-        <p>Auto crossfade:<br />Crossfade from one source to another every 10s.<br />Reload page to stop!</p>
+        <p>
+          Auto crossfade:
+          <br />
+          Crossfade from one source to another every 10s.
+          <br />
+          Reload page to stop!
+        </p>
         <button onClick={permanentCrossfade}>Crossfade</button>
       </div>
     </div>

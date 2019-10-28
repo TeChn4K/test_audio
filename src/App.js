@@ -27,13 +27,9 @@ function crossfade(callback1, callback2, callbackEnd) {
 }
 
 let context;
+
 try {
-  window.AudioContext =
-    window.AudioContext ||
-    window.webkitAudioContext ||
-    window.mozAudioContext ||
-    window.oAudioContext ||
-    window.msAudioContext;
+  window.AudioContext = window.AudioContext || window.webkitAudioContext;
   context = new AudioContext();
 } catch (e) {
   alert("Web Audio API is not supported in this browser");
@@ -115,10 +111,11 @@ function App() {
       audio1.src = flux1;
       // audio1.load(); // Needed on iOS? Maybe, but it's not working on Chrome Android!
 
-      return () => {
-        audio1.removeEventListener("canplaythrough", playHandler);
-        audio1.removeEventListener("error", errorHandler);
-      };
+      // Commented because it failed on Chrome, again!
+      // return () => {
+      //   audio1.removeEventListener("canplaythrough", playHandler);
+      //   audio1.removeEventListener("error", errorHandler);
+      // };
     } else {
       audio1.pause();
       audio1.src = ""; // Stop loading previous stream
@@ -136,10 +133,11 @@ function App() {
       audio2.src = flux2;
       // audio2.load(); // Needed on iOS? Maybe, but it's not working on Chrome Android!
 
-      return () => {
-        audio2.removeEventListener("canplaythrough", playHandler);
-        audio2.removeEventListener("error", errorHandler);
-      };
+      // Commented because it failed on Chrome, again!
+      // return () => {
+      //   audio2.removeEventListener("canplaythrough", playHandler);
+      //   audio2.removeEventListener("error", errorHandler);
+      // };
     } else {
       audio2.pause();
       audio2.src = ""; // Stop loading previous stream
@@ -192,7 +190,7 @@ function App() {
   return (
     <div className="App">
       <h1>
-        Test audio <small style={{fontSize: '0.95rem'}}>v 2.1</small>
+        Test audio <small style={{ fontSize: "0.95rem" }}>v2</small>
       </h1>
 
       <div style={{ display: "flex" }}>

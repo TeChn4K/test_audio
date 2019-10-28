@@ -106,7 +106,7 @@ function App() {
       audio1.addEventListener("error", errorHandler);
 
       audio1.src = flux1;
-      audio1.load(); // Needed on iOS
+      // audio1.load(); // Needed on iOS? Maybe, but it's not working on Chrome Android!
 
       return () => {
         audio1.removeEventListener("canplaythrough", playHandler);
@@ -127,7 +127,7 @@ function App() {
       audio2.addEventListener("error", errorHandler);
 
       audio2.src = flux2;
-      audio2.load(); // Needed on iOS
+      // audio2.load(); // Needed on iOS? Maybe, but it's not working on Chrome Android!
 
       return () => {
         audio2.removeEventListener("canplaythrough", playHandler);

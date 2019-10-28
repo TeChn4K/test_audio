@@ -42,13 +42,11 @@ const gain2 = context.createGain();
 // Audio sources
 const audio1 = new Audio();
 audio1.crossOrigin = "anonymous";
-// audio1.preload = "none";
 const sourceAudio1 = context.createMediaElementSource(audio1);
 
 // 3-2. Second Audio source
 const audio2 = new Audio();
 audio2.crossOrigin = "anonymous";
-// audio2.preload = "none";
 const sourceAudio2 = context.createMediaElementSource(audio2);
 
 // Connecting sources
@@ -102,7 +100,10 @@ function App() {
 
   useEffect(() => {
     if (playing1) {
-      const playHandler = () => audio1.play();
+      const playHandler = () => {
+        // Have to be called on a user action to be able to play 
+        context.resume().then(() => audio1.play());
+      }
       const errorHandler = e => console.log("Error while loading audio1", e);
 
       audio1.addEventListener("canplaythrough", playHandler, false);
@@ -111,11 +112,10 @@ function App() {
       audio1.src = flux1;
       // audio1.load(); // Needed on iOS? Maybe, but it's not working on Chrome Android!
 
-      // Commented because it failed on Chrome, again!
-      // return () => {
-      //   audio1.removeEventListener("canplaythrough", playHandler);
-      //   audio1.removeEventListener("error", errorHandler);
-      // };
+      return () => {
+        audio1.removeEventListener("canplaythrough", playHandler);
+        audio1.removeEventListener("error", errorHandler);
+      };
     } else {
       audio1.pause();
       audio1.src = ""; // Stop loading previous stream
@@ -124,7 +124,10 @@ function App() {
 
   useEffect(() => {
     if (playing2) {
-      const playHandler = () => audio2.play();
+      const playHandler = () => {
+        // Have to be called on a user action to be able to play 
+        context.resume().then(() => audio2.play());
+      }
       const errorHandler = e => console.log("Error while loading audio2", e);
 
       audio2.addEventListener("canplaythrough", playHandler, false);
@@ -133,11 +136,10 @@ function App() {
       audio2.src = flux2;
       // audio2.load(); // Needed on iOS? Maybe, but it's not working on Chrome Android!
 
-      // Commented because it failed on Chrome, again!
-      // return () => {
-      //   audio2.removeEventListener("canplaythrough", playHandler);
-      //   audio2.removeEventListener("error", errorHandler);
-      // };
+      return () => {
+        audio2.removeEventListener("canplaythrough", playHandler);
+        audio2.removeEventListener("error", errorHandler);
+      };
     } else {
       audio2.pause();
       audio2.src = ""; // Stop loading previous stream

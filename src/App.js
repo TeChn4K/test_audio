@@ -185,7 +185,7 @@ function App() {
 
   return (
     <div className="App">
-      <h1> Test audio </h1>
+      <h1> Test audio <small>v.2</small></h1>
 
       <div style={{ display: "flex" }}>
         <fieldset style={{ flex: 1 }}>

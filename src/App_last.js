@@ -1,16 +1,10 @@
-/* eslint-disable no-undef */
 /* eslint-disable react-hooks/exhaustive-deps */
-import React, { useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import "./App.css";
-
-// Workaround
-// import hlsjs from 'hls.js';
-// window.Hls = hlsjs;
-import 'mediaelement';
 
 const flux1 = "https://novazz.ice.infomaniak.ch/novazz-128.mp3";
 const flux2 = "https://ledjamradio.ice.infomaniak.ch/ledjamradio.mp3";
-const flux3 = "http://radiocapital-lh.akamaihd.net/i/RadioCapital_Live_1@196312/master.m3u8";
+// const flux2 = "http://radiocapital-lh.akamaihd.net/i/RadioCapital_Live_1@196312/master.m3u8";
 
 // Use an equal-power crossfading curve
 function equalPowerCrossfade(percent) {
@@ -26,36 +20,41 @@ function crossfade(callback1, callback2, callbackEnd) {
     callback2(vol2);
 
     counter++;
-    if (counter > 100) {
+    if (counter >= 100) {
       clearInterval(progress);
       callbackEnd();
     }
   }, 20);
 }
 
+let context;
 
-// Audio source 1
-const audio1 = document.querySelector("#audio1");
+try {
+  window.AudioContext = window.AudioContext || window.webkitAudioContext;
+  context = new AudioContext();
+} catch (e) {
+  alert("Web Audio API is not supported in this browser");
+}
+
+// Gains
+const gain1 = context.createGain();
+const gain2 = context.createGain();
+
+// Audio sources
+const audio1 = new Audio();
 audio1.crossOrigin = "anonymous";
+const sourceAudio1 = context.createMediaElementSource(audio1);
 
-// Audio source 2
-const audio2 = document.querySelector("#audio2");
+// 3-2. Second Audio source
+const audio2 = new Audio();
 audio2.crossOrigin = "anonymous";
+const sourceAudio2 = context.createMediaElementSource(audio2);
 
-
-const player1 = new MediaElementPlayer(audio1, {
-  pauseOtherPlayers: false,
-  startVolume: 1,
-  // features: [],
-});
-player1.setSrc(flux3);
-
-const player2 = new MediaElementPlayer(audio2, {
-  pauseOtherPlayers: false,
-  startVolume: 1,
-  // features: [],
-});
-player2.setSrc(flux1);
+// Connecting sources
+sourceAudio1.connect(gain1);
+sourceAudio2.connect(gain2);
+gain1.connect(context.destination);
+gain2.connect(context.destination);
 
 function App() {
   const [playing1, setPlaying1] = useState(false);
@@ -64,23 +63,17 @@ function App() {
   const inputRange1Ref = useRef(null);
   const inputRange2Ref = useRef(null);
 
-  
-
   const changeVolume1 = volume => {
     inputRange1Ref.current.value = volume; // Set input range value
 
     var fraction = parseInt(volume) / 100;
-    // player1.setVolume(fraction * fraction)
-    audio1.player.media.volume = (fraction * fraction); // Do not use setVolume, sound crackling on Firefox!
-
+    gain1.gain.value = fraction * fraction;
   };
   const changeVolume2 = volume => {
     inputRange2Ref.current.value = volume; // Set input range value
 
     var fraction = parseInt(volume) / 100;
-    // player2.setVolume(fraction * fraction)
-    audio2.player.media.volume = (fraction * fraction); // Do not use setVolume, sound crackling on Firefox!
-
+    gain2.gain.value = fraction * fraction;
   };
 
   const volumeRange1Ref = useCallback(node => {
@@ -99,40 +92,71 @@ function App() {
     changeVolume2(inputRange2Ref.current.value);
   };
 
-  const togglePlaying1 = (flag) => {
-    setPlaying1(flag);
-
-    if (flag) {
-      player1.play();
-    }
-    else {
-      player1.pause();
-      // player2.setSrc(''); // Prevent playing cache on resume
-    }
+  const togglePlaying1 = () => {
+    setPlaying1(!playing1);
+  };
+  const togglePlaying2 = () => {
+    setPlaying2(!playing2);
   };
 
-  const togglePlaying2 = (flag) => {
-    setPlaying2(flag);
+  useEffect(() => {
+    if (playing1) {
+      const playHandler = () => {
+        // Have to be called on a user action to be able to play 
+        context.resume().then(() => audio1.play());
+      }
+      const errorHandler = e => console.log("Error while loading audio1", e);
 
-    if (flag) {
-      player2.play();
+      audio1.addEventListener("canplaythrough", playHandler, false);
+      audio1.addEventListener("error", errorHandler);
+
+      audio1.src = flux1;
+      // audio1.load(); // Needed on iOS? Maybe, but it's not working on Chrome Android!
+
+      return () => {
+        audio1.removeEventListener("canplaythrough", playHandler);
+        audio1.removeEventListener("error", errorHandler);
+      };
+    } else {
+      audio1.pause();
+      audio1.src = ""; // Stop loading previous stream
     }
-    else {
-      player2.pause();
-      // player2.setSrc(''); // Prevent playing cache on resume
+  }, [playing1]);
+
+  useEffect(() => {
+    if (playing2) {
+      const playHandler = () => {
+        // Have to be called on a user action to be able to play 
+        context.resume().then(() => audio2.play());
+      }
+      const errorHandler = e => console.log("Error while loading audio2", e);
+
+      audio2.addEventListener("canplaythrough", playHandler, false);
+      audio2.addEventListener("error", errorHandler);
+
+      audio2.src = flux2;
+      // audio2.load(); // Needed on iOS? Maybe, but it's not working on Chrome Android!
+
+      return () => {
+        audio2.removeEventListener("canplaythrough", playHandler);
+        audio2.removeEventListener("error", errorHandler);
+      };
+    } else {
+      audio2.pause();
+      audio2.src = ""; // Stop loading previous stream
     }
-  };
+  }, [playing2]);
 
   const crossfade1to2 = () => {
     changeVolume1(100);
     changeVolume2(0);
-    togglePlaying1(true);
-    togglePlaying2(true);
+    setPlaying1(true);
+    setPlaying2(true);
 
     // Wait for starting stream to play
     setTimeout(() => {
       crossfade(changeVolume1, changeVolume2, () => {
-        togglePlaying1(false);
+        setPlaying1(false);
       });
     }, 2000);
   };
@@ -140,13 +164,13 @@ function App() {
   const crossfade2to1 = () => {
     changeVolume1(0);
     changeVolume2(100);
-    togglePlaying1(true);
-    togglePlaying2(true);
+    setPlaying1(true);
+    setPlaying2(true);
 
     // Wait for starting stream to play
     setTimeout(() => {
       crossfade(changeVolume2, changeVolume1, () => {
-        togglePlaying2(false);
+        setPlaying2(false);
       });
     }, 2000);
   };
@@ -176,7 +200,7 @@ function App() {
         <fieldset style={{ flex: 1 }}>
           <figcaption>Channel 1</figcaption>
           <p>
-            <button onClick={() => togglePlaying1(!playing1)}>{playing1 ? "STOP" : "PLAY"}</button>
+            <button onClick={togglePlaying1}>{playing1 ? "STOP" : "PLAY"}</button>
           </p>
           <p>
             <span>Volume:</span>
@@ -187,7 +211,7 @@ function App() {
         <fieldset style={{ flex: 1 }}>
           <figcaption>Channel 2</figcaption>
           <p>
-            <button onClick={() => togglePlaying2(!playing2)}>{playing2 ? "STOP" : "PLAY"}</button>
+            <button onClick={togglePlaying2}>{playing2 ? "STOP" : "PLAY"}</button>
           </p>
           <p>
             <span>Volume:</span>

@@ -33,29 +33,52 @@ function crossfade(callback1, callback2, callbackEnd) {
   }, 20);
 }
 
+let context;
+
+try {
+  window.AudioContext = window.AudioContext || window.webkitAudioContext;
+  context = new AudioContext();
+} catch (e) {
+  alert("Web Audio API is not supported in this browser");
+}
+
+// Gains
+const gain1 = context.createGain();
+const gain2 = context.createGain();
 
 // Audio source 1
 const audio1 = document.querySelector("#audio1");
+
 audio1.crossOrigin = "anonymous";
+const sourceAudio1 = context.createMediaElementSource(audio1);
 
 // Audio source 2
 const audio2 = document.querySelector("#audio2");
+new MediaElementPlayer(audio2, {
+  pauseOtherPlayers: false,
+  startVolume: 1,
+  // features: [],
+});
+
 audio2.crossOrigin = "anonymous";
+const sourceAudio2 = context.createMediaElementSource(audio2);
+
+// Connecting sources
+sourceAudio1.connect(gain1);
+sourceAudio2.connect(gain2);
+gain1.connect(context.destination);
+gain2.connect(context.destination);
 
 
-const player1 = new MediaElementPlayer(audio1, {
+audio2.src = flux2;
+
+const player = new MediaElementPlayer(audio1, {
   pauseOtherPlayers: false,
   startVolume: 1,
   // features: [],
 });
-player1.setSrc(flux3);
-
-const player2 = new MediaElementPlayer(audio2, {
-  pauseOtherPlayers: false,
-  startVolume: 1,
-  // features: [],
-});
-player2.setSrc(flux1);
+player.setSrc(flux3);
+// audio1.src = flux3;
 
 function App() {
   const [playing1, setPlaying1] = useState(false);
@@ -70,17 +93,16 @@ function App() {
     inputRange1Ref.current.value = volume; // Set input range value
 
     var fraction = parseInt(volume) / 100;
+    gain1.gain.value = fraction * fraction;
     // player1.setVolume(fraction * fraction)
-    audio1.player.media.volume = (fraction * fraction); // Do not use setVolume, sound crackling on Firefox!
 
   };
   const changeVolume2 = volume => {
     inputRange2Ref.current.value = volume; // Set input range value
 
     var fraction = parseInt(volume) / 100;
+    gain2.gain.value = fraction * fraction;
     // player2.setVolume(fraction * fraction)
-    audio2.player.media.volume = (fraction * fraction); // Do not use setVolume, sound crackling on Firefox!
-
   };
 
   const volumeRange1Ref = useCallback(node => {
@@ -103,11 +125,11 @@ function App() {
     setPlaying1(flag);
 
     if (flag) {
-      player1.play();
+      console.log(audio1);
+      player.play();
     }
     else {
-      player1.pause();
-      // player2.setSrc(''); // Prevent playing cache on resume
+      player.pause();
     }
   };
 
@@ -115,11 +137,10 @@ function App() {
     setPlaying2(flag);
 
     if (flag) {
-      player2.play();
+      audio2.play();
     }
     else {
-      player2.pause();
-      // player2.setSrc(''); // Prevent playing cache on resume
+      audio2.pause();
     }
   };
 

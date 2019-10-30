@@ -10,7 +10,7 @@ import 'mediaelement';
 
 const flux1 = "https://novazz.ice.infomaniak.ch/novazz-128.mp3";
 const flux2 = "https://ledjamradio.ice.infomaniak.ch/ledjamradio.mp3";
-const flux3 = "http://radiocapital-lh.akamaihd.net/i/RadioCapital_Live_1@196312/master.m3u8";
+const flux3 = "https://radiocapital-lh.akamaihd.net/i/RadioCapital_Live_1@196312/master.m3u8";
 
 // Use an equal-power crossfading curve
 function equalPowerCrossfade(percent) {

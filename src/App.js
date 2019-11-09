@@ -16,6 +16,7 @@ player.init();
 
 function App() {
   const [playing1, setPlaying1] = useState(false);
+  const [isLoading, setLoading] = useState(false);
   const [current, setCurrent] = useState(0);
   const sliderRef = useRef();
 
@@ -24,13 +25,16 @@ function App() {
   };
 
   const play = index => {
+    setLoading(true);
     player.play(streams[index]).then(() => {
       console.log("playing now!");
+      setLoading(false);
     });
   };
 
   const stop = () => {
     player.stop();
+    setLoading(false);
   };
 
   const next = () => {
@@ -54,6 +58,14 @@ function App() {
     sliderRef.current.value = 100;
   }, []);
 
+  let status = "Paused";
+  if (playing1) {
+    status = "Playing";
+  }
+  if (isLoading) {
+    status = "Loading";
+  }
+
   return (
     <div className="App">
       <h1>
@@ -70,6 +82,9 @@ function App() {
             <button onClick={() => next()} disabled={!playing1}>
               Next
             </button>
+          </p>
+          <p>
+            Status: {status}
           </p>
           <p>
             <span>Volume:</span>

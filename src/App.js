@@ -19,6 +19,7 @@ function App() {
   const [isLoading, setLoading] = useState(false);
   const [current, setCurrent] = useState(0);
   const sliderRef = useRef();
+  const delayRef = useRef(null);
 
   const sliderChangedHandler = () => {
     player.setVolume(sliderRef.current.value);
@@ -26,14 +27,14 @@ function App() {
 
   const play = index => {
     setLoading(true);
-    player.play(streams[index]).then(() => {
+    player.play(streams[index], parseInt(delayRef.current.value)).then(() => {
       console.log("playing now!");
       setLoading(false);
     });
   };
 
   const stop = () => {
-    player.stop();
+    player.stop(parseInt(delayRef.current.value));
     setLoading(false);
   };
 
@@ -84,7 +85,10 @@ function App() {
             </button>
           </p>
           <p>
-            Status: {status}
+            Transition delay (0 to disable) <input type="number" defaultValue="1500" step="100" ref={delayRef} />
+          </p>
+          <p>
+            Status: {status} {playing1 && !isLoading && `(channel ${player._getCurrentChannel()})`}
           </p>
           <p>
             <span>Volume:</span>

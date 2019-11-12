@@ -6,7 +6,13 @@ const crossfadeStep = 5;
 // Have a look at https://github.com/video-dev/hls.js#compatibility
 
 function isHls(url) {
-  return url.split(/\#|\?/)[0].split('.').pop().trim() === "m3u8";
+  return (
+    url
+      .split(/\#|\?/)[0]
+      .split(".")
+      .pop()
+      .trim() === "m3u8"
+  );
 }
 
 function equalPowerCrossfade(value) {
@@ -21,6 +27,7 @@ function crossfade(callback1, callback2, delay = 0) {
     if (!delay) {
       fn1(1);
       fn2(0);
+      resolve();
     } else {
       const timeStep = (delay * crossfadeStep) / 100;
       let counter = 0;
@@ -69,10 +76,10 @@ const playerService = {
     this.gainMaster.connect(this.context.destination);
 
     // Channel 1 & 2
-    for(let i = 0; i <= 1; i++) {
+    for (let i = 0; i <= 1; i++) {
       this.gains[i] = this.context.createGain();
       this.gains[i].connect(this.gainMaster);
-  
+
       this.audios[i] = new Audio();
       this.audios[i].crossOrigin = "anonymous";
       this.context.createMediaElementSource(this.audios[i]).connect(this.gains[i]);
@@ -90,22 +97,26 @@ const playerService = {
       const freeChannel = this._getFreeChannel();
 
       this.gains[freeChannel].gain.value = 0;
+      this._setCurrentChannel(freeChannel);
       await this._startChannel(freeChannel, `${url}?nocache=${new Date().getTime()}`);
 
-      if (!wasPlaying) {
-        await this._fadeIn(freeChannel, delay);
-      } else {
-        const current = this._getCurrentChannel();
-        await this._fadeInOut(freeChannel, current, delay);
-        this._stopChannel(current);
-      }
+      resolve({
+        transitionEnd: new Promise(async (subresolve, reject) => {
+          if (!wasPlaying) {
+            await this._fadeIn(freeChannel, delay);
+          } else {
+            const current = this._getFreeChannel();
+            await this._fadeInOut(freeChannel, current, delay);
+            this._stopChannel(current);
+          }
 
-      this._setCurrentChannel(freeChannel);
-      resolve();
+          subresolve();
+        })
+      });
     });
   },
 
-  stop(delay = 750) {
+  stop(delay = 0) {
     return new Promise(async (resolve, reject) => {
       if (this._isPlaying()) {
         const channel = this._getCurrentChannel();

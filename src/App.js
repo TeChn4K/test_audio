@@ -15,8 +15,9 @@ const streams = [
 player.init();
 
 function App() {
-  const [playing1, setPlaying1] = useState(false);
+  const [isPlaying, setPlaying] = useState(false);
   const [isLoading, setLoading] = useState(false);
+  const [isCrossfading, setCrossfading] = useState(false);
   const [current, setCurrent] = useState(0);
   const sliderRef = useRef();
   const delayRef = useRef(null);
@@ -25,16 +26,17 @@ function App() {
     player.setVolume(sliderRef.current.value);
   };
 
-  const play = index => {
+  const play = async index => {
     setLoading(true);
-    player.play(streams[index], parseInt(delayRef.current.value)).then(() => {
-      console.log("playing now!");
-      setLoading(false);
-    });
+    const { transitionEnd } = await player.play(streams[index], parseInt(delayRef.current.value));
+    setLoading(false);
+    setCrossfading(true);
+    await transitionEnd;
+    setCrossfading(false);
   };
 
-  const stop = () => {
-    player.stop(parseInt(delayRef.current.value));
+  const stop = async () => {
+    await player.stop(parseInt(delayRef.current.value));
     setLoading(false);
   };
 
@@ -44,13 +46,13 @@ function App() {
     setCurrent(index);
   };
 
-  const togglePlaying1 = flag => {
+  const togglePlaying1 = async flag => {
     if (flag) {
-      play(current);
+      await play(current);
     } else {
-      stop();
+      await stop();
     }
-    setPlaying1(flag);
+    setPlaying(flag);
   };
 
   // Init
@@ -60,11 +62,14 @@ function App() {
   }, []);
 
   let status = "Paused";
-  if (playing1) {
+  if (isPlaying) {
     status = "Playing";
   }
   if (isLoading) {
     status = "Loading";
+  }
+  if (isCrossfading) {
+    status = "Crossfading";
   }
 
   return (
@@ -79,8 +84,8 @@ function App() {
             Stream {current + 1}: {streams[current]}
           </p>
           <p>
-            <button onClick={() => togglePlaying1(!playing1)}>{playing1 ? "STOP" : "PLAY"}</button>{" "}
-            <button onClick={() => next()} disabled={!playing1}>
+            <button onClick={() => togglePlaying1(!isPlaying)}>{isPlaying ? "STOP" : "PLAY"}</button>{" "}
+            <button onClick={() => next()} disabled={!isPlaying}>
               Next
             </button>
           </p>
@@ -88,7 +93,7 @@ function App() {
             Transition delay (0 to disable) <input type="number" defaultValue="1500" step="100" ref={delayRef} />
           </p>
           <p>
-            Status: {status} {playing1 && !isLoading && `(channel ${player._getCurrentChannel()})`}
+            Status: {status} {isPlaying && !isLoading && `(channel ${player._getCurrentChannel()})`}
           </p>
           <p>
             <span>Volume:</span>
